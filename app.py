@@ -91,7 +91,7 @@ st.subheader("Created by Civil Engineer Mustafa Harmoush")
 
 # زر Reset لمسح كل البيانات
 if st.button("Reset"):
-    st.experimental_rerun()
+    st.rerun()
 
 # إدخال سعر الطن (اختياري)
 price = st.number_input("Price per ton (optional)", min_value=0.0)
