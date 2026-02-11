@@ -16,6 +16,7 @@ DIAMETERS = [6, 8, 10, 12, 14, 16, 18, 20, 22, 25, 32]
 # Weight per meter formula
 # =========================
 def weight_per_meter(diameter):
+    # لا نقرب هنا، نحتفظ بالدقة الكاملة
     return (diameter ** 2) / 162
 
 # =========================
@@ -87,11 +88,11 @@ def generate_pdf(df, waste_df, price=None):
     for _, row in df.iterrows():
         pdf.cell(col_widths_main[0], 8, str(row["Diameter"]), border=1)
         pdf.cell(col_widths_main[1], 8, str(row["Bars Used"]), border=1)
-        pdf.cell(col_widths_main[2], 8, str(row["Required Weight (kg)"]), border=1)
-        pdf.cell(col_widths_main[3], 8, str(row["Used Weight (kg)"]), border=1)
-        pdf.cell(col_widths_main[4], 8, str(row["Waste Weight (kg)"]), border=1)
-        pdf.cell(col_widths_main[5], 8, str(row["Waste %"]), border=1)
-        pdf.cell(col_widths_main[6], 8, str(row["Cost"]), border=1)
+        pdf.cell(col_widths_main[2], 8, f"{row['Required Weight (kg)']}", border=1)
+        pdf.cell(col_widths_main[3], 8, f"{row['Used Weight (kg)']}", border=1)
+        pdf.cell(col_widths_main[4], 8, f"{row['Waste Weight (kg)']}", border=1)
+        pdf.cell(col_widths_main[5], 8, f"{row['Waste %']}", border=1)
+        pdf.cell(col_widths_main[6], 8, f"{row['Cost']}", border=1)
         pdf.ln()
 
     pdf.ln(5)
@@ -194,7 +195,7 @@ if st.button("Run Optimization"):
 
         wpm = weight_per_meter(d)
 
-        # حساب Main Report
+        # حساب Main Report بدقة كاملة
         required_weight = total_required * wpm
         used_weight = total_bar_length * wpm
         waste_weight = (total_bar_length - total_required) * wpm
@@ -204,11 +205,11 @@ if st.button("Run Optimization"):
         results.append([
             d,
             used_bars,
-            round(required_weight, 2),
-            round(used_weight, 2),
-            round(waste_weight, 2),
-            round(waste_percent, 2),
-            round(cost, 2)
+            required_weight,   # لا نقرب
+            used_weight,
+            waste_weight,
+            waste_percent,
+            cost
         ])
 
         # جمع الهدر لكل مجموعة من القضبان بنفس الطول والقطر
@@ -216,7 +217,7 @@ if st.button("Run Optimization"):
             bar_total_length = sum(bar)
             bar_waste = BAR_LENGTH - bar_total_length
             if bar_waste > 0:
-                key = (d, round(bar_waste, 2))
+                key = (d, round(bar_waste, 6))  # دقة كبيرة جدا
                 waste_dict[key]["count"] += 1
                 waste_dict[key]["weight"] += bar_waste * wpm
 
@@ -230,14 +231,14 @@ if st.button("Run Optimization"):
         "Cost"
     ])
 
-    # تحويل dict الهدر إلى DataFrame
+    # تحويل dict الهدر إلى DataFrame بدون تقريب
     waste_data = []
     for (diameter, waste_length), info in waste_dict.items():
         waste_data.append([
             diameter,
             waste_length,
             info["count"],
-            round(info["weight"], 2)
+            info["weight"]
         ])
 
     waste_df = pd.DataFrame(waste_data, columns=[
