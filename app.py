@@ -113,7 +113,7 @@ for d in diameters:
 
         if st.button(f"Add Row for Diameter {d}"):
             st.session_state[f"rows_{d}"].append({"Length":0.0, "Quantity":0})
-            st.experimental_rerun()
+            st.rerun()
 
         # تحويل البيانات لكل قطر لقائمة أطوال
         lengths_list = []
