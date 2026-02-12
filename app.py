@@ -49,7 +49,7 @@ def optimize_cutting(lengths):
 # =========================
 # PDF Generator
 # =========================
-def generate_pdf(df, waste_df, purchase_df):
+def generate_pdf(df, waste_df, purchase_df, cutting_instructions, price):
     pdf = FPDF(orientation='L')
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -65,14 +65,15 @@ def generate_pdf(df, waste_df, purchase_df):
     pdf.ln(5)
 
     # ----------------------
-    # Main Report Table (بدون الكوست)
+    # Main Report Table
     # ----------------------
     pdf.set_font("Arial", 'B', 10)
     pdf.cell(0, 8, "Main Report", ln=True)
     pdf.set_font("Arial", '', 8)
 
     col_widths_main = [25, 25, 35, 35, 35, 25]
-    headers_main = ["Diameter", "Bars Used", "Required W (kg)", "Used W (kg)", "Waste W (kg)", "Waste %"]
+    headers_main = ["Diameter", "Bars Used", "Required W (kg)", "Used W (kg)",
+                    "Waste W (kg)", "Waste %"]
 
     for i, header in enumerate(headers_main):
         pdf.cell(col_widths_main[i], 8, header, border=1, align="C")
@@ -103,14 +104,14 @@ def generate_pdf(df, waste_df, purchase_df):
     pdf.ln(10)
 
     # ----------------------
-    # Detailed Waste Report Table
+    # Detailed Waste Report
     # ----------------------
     pdf.set_font("Arial", 'B', 10)
     pdf.cell(0, 8, "Detailed Waste Report", ln=True)
     pdf.set_font("Arial", '', 8)
 
     col_widths_waste = [25, 35, 25, 35]
-    headers_waste = ["Diameter", "Waste Length (m)", "Number of Bars", "Weight (kg)"]
+    headers_waste = ["Diameter", "Waste Length (m)", "Number of Bars", "Waste Weight (kg)"]
 
     for i, header in enumerate(headers_waste):
         pdf.cell(col_widths_waste[i], 8, header, border=1, align="C")
@@ -121,9 +122,9 @@ def generate_pdf(df, waste_df, purchase_df):
         pdf.cell(col_widths_waste[0], 8, f"{int(row['Diameter'])} mm", border=1, align="C")
         pdf.cell(col_widths_waste[1], 8, f"{row['Waste Length (m)']:.2f}", border=1, align="C")
         pdf.cell(col_widths_waste[2], 8, f"{int(row['Number of Bars'])}", border=1, align="C")
-        pdf.cell(col_widths_waste[3], 8, f"{row['Weight (kg)']:.2f}", border=1, align="C")
+        pdf.cell(col_widths_waste[3], 8, f"{row['Waste Weight (kg)']:.2f}", border=1, align="C")
         pdf.ln()
-        total_waste_weight2 += row['Weight (kg)']
+        total_waste_weight2 += row['Waste Weight (kg)']
 
     pdf.set_font("Arial", 'B', 8)
     pdf.cell(col_widths_waste[0]+col_widths_waste[1]+col_widths_waste[2], 8, "TOTAL", border=1, align="C")
@@ -131,7 +132,7 @@ def generate_pdf(df, waste_df, purchase_df):
     pdf.ln(10)
 
     # ----------------------
-    # Purchase Summary Table (مع الكوست)
+    # Purchase Summary Table (with Cost)
     # ----------------------
     pdf.set_font("Arial", 'B', 10)
     pdf.cell(0, 8, "Purchase Summary (12m Bars)", ln=True)
@@ -150,16 +151,32 @@ def generate_pdf(df, waste_df, purchase_df):
         pdf.cell(col_widths_purchase[0], 8, f"{int(row['Diameter'])} mm", border=1, align="C")
         pdf.cell(col_widths_purchase[1], 8, f"{int(row['Bars'])}", border=1, align="C")
         pdf.cell(col_widths_purchase[2], 8, f"{row['Weight (kg)']:.2f}", border=1, align="C")
-        pdf.cell(col_widths_purchase[3], 8, f"{row['Cost']:.2f}", border=1, align="C")
+        cost = (row['Weight (kg)']/1000)*price
+        pdf.cell(col_widths_purchase[3], 8, f"{cost:.2f}", border=1, align="C")
         pdf.ln()
         total_purchase_weight += row['Weight (kg)']
-        total_purchase_cost += row['Cost']
+        total_purchase_cost += cost
 
     pdf.set_font("Arial", 'B', 8)
     pdf.cell(col_widths_purchase[0]+col_widths_purchase[1], 8, "TOTAL", border=1, align="C")
     pdf.cell(col_widths_purchase[2], 8, f"{total_purchase_weight:.2f}", border=1, align="C")
     pdf.cell(col_widths_purchase[3], 8, f"{total_purchase_cost:.2f}", border=1, align="C")
     pdf.ln(10)
+
+    # ----------------------
+    # Cutting Instructions
+    # ----------------------
+    pdf.set_font("Arial", 'B', 10)
+    pdf.cell(0, 8, "Cutting Instructions per 12m Bar", ln=True)
+    pdf.set_font("Arial", '', 8)
+    for d, bars in cutting_instructions.items():
+        pdf.set_font("Arial", 'B', 8)
+        pdf.cell(0, 8, f"Diameter {d} mm", ln=True)
+        pdf.set_font("Arial", '', 8)
+        for i, bar in enumerate(bars):
+            line = " + ".join([f"{l:.2f} m" for l in bar]) + f" = {sum(bar):.2f} m"
+            pdf.cell(0, 6, f"Bar {i+1}: {line}", ln=True)
+        pdf.ln(3)
 
     pdf.set_font("Arial", '', 10)
     pdf.cell(0, 8, "Signature: ____________________", ln=True)
@@ -203,6 +220,7 @@ if st.button("Run Optimization"):
     results = []
     waste_dict = defaultdict(lambda: {"count":0, "weight":0})
     purchase_list = []
+    cutting_instructions = {}
 
     for d, lengths in data.items():
         solution = optimize_cutting(lengths)
@@ -216,37 +234,46 @@ if st.button("Run Optimization"):
         used_weight = total_bar_length * wpm
         waste_weight = (total_bar_length - total_required) * wpm
         waste_percent = ((total_bar_length - total_required)/total_bar_length)*100
-        cost = (used_weight/1000)*price
-        results.append([d, used_bars, required_weight, used_weight, waste_weight, waste_percent, cost])
+        results.append([d, used_bars, required_weight, used_weight, waste_weight, waste_percent])
 
-        # جمع الهدر لكل قطر وطول
+        # Waste per bar
         for bar in solution:
             bar_total_length = sum(bar)
             bar_waste = BAR_LENGTH - bar_total_length
-            if bar_waste > 0:
-                key = (d, round(bar_waste,2))
-                waste_dict[key]["count"] += 1
+            if bar_waste>0:
+                key = (d, round(bar_waste,6))
+                waste_dict[key]["count"] +=1
                 waste_dict[key]["weight"] += bar_waste*wpm
 
-        # Purchase summary
-        purchase_list.append([d, used_bars, used_weight, cost])
+        # Purchase summary: all used bars of 12m
+        purchase_list.append([d, used_bars, used_weight])
 
-    df = pd.DataFrame(results, columns=["Diameter","Bars Used","Required Weight (kg)","Used Weight (kg)","Waste Weight (kg)","Waste %","Cost"])
-    detailed_waste_data = []
-    for (diameter, length), info in sorted(waste_dict.items()):
-        detailed_waste_data.append([diameter, length, info["count"], info["weight"]])
-    detailed_waste_df = pd.DataFrame(detailed_waste_data, columns=["Diameter","Waste Length (m)","Number of Bars","Weight (kg)"])
-    purchase_df = pd.DataFrame(purchase_list, columns=["Diameter","Bars","Weight (kg)","Cost"])
+        # Cutting instructions
+        cutting_instructions[d] = solution
+
+    df = pd.DataFrame(results, columns=["Diameter","Bars Used","Required Weight (kg)","Used Weight (kg)","Waste Weight (kg)","Waste %"])
+    waste_data = []
+    for (diameter,waste_length), info in waste_dict.items():
+        waste_data.append([diameter, waste_length, info["count"], info["weight"]])
+    waste_df = pd.DataFrame(waste_data, columns=["Diameter","Waste Length (m)","Number of Bars","Waste Weight (kg)"])
+    purchase_df = pd.DataFrame(purchase_list, columns=["Diameter","Bars","Weight (kg)"])
 
     st.success("Optimization Completed Successfully ✅")
     st.markdown("### Main Report")
     st.dataframe(df.style.format({"Required Weight (kg)":"{:.2f}","Used Weight (kg)":"{:.2f}","Waste Weight (kg)":"{:.2f}","Waste %":"{:.2f}"}))
     st.markdown("### Detailed Waste Report")
-    st.dataframe(detailed_waste_df.style.format({"Waste Length (m)":"{:.2f}","Weight (kg)":"{:.2f}"}))
-    st.markdown("### Purchase Summary")
-    st.dataframe(purchase_df.style.format({"Weight (kg)":"{:.2f}","Cost":"{:.2f}"}))
+    st.dataframe(waste_df.style.format({"Waste Length (m)":"{:.2f}","Waste Weight (kg)":"{:.2f}"}))
+    st.markdown("### Purchase Summary (12m Bars)")
+    st.dataframe(purchase_df.style.format({"Weight (kg)":"{:.2f}"}))
+    
+    st.markdown("### Cutting Instructions per 12m Bar")
+    for d, bars in cutting_instructions.items():
+        st.markdown(f"**Diameter {d} mm**")
+        for i, bar in enumerate(bars):
+            line = " + ".join([f"{l:.2f} m" for l in bar]) + f" = {sum(bar):.2f} m"
+            st.text(f"Bar {i+1}: {line}")
 
     # PDF
-    pdf_file = generate_pdf(df, detailed_waste_df, purchase_df)
+    pdf_file = generate_pdf(df, waste_df, purchase_df, cutting_instructions, price)
     with open(pdf_file,"rb") as f:
         st.download_button("Download PDF Report", data=f, file_name=pdf_file, mime="application/pdf")
