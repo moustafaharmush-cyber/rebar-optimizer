@@ -3,7 +3,6 @@ import random
 import pandas as pd
 from fpdf import FPDF
 import datetime
-from collections import defaultdict
 
 # =========================
 # Settings
@@ -71,19 +70,17 @@ def generate_pdf(df, purchase_df, price):
     pdf.cell(0, 8, f"Date: {datetime.date.today()}", ln=True)
     pdf.ln(10)
 
-    # =========================
-    # MAIN REPORT (NO COST)
-    # =========================
+    # ===== Main Report =====
     pdf.set_font("Arial", 'B', 11)
     pdf.cell(0, 8, "Main Report", ln=True)
     pdf.set_font("Arial", '', 9)
 
-    col_widths_main = [30, 30, 40, 40, 40, 30]
-    headers_main = ["Diameter", "Bars Used", "Required W (kg)",
-                    "Used W (kg)", "Waste W (kg)", "Waste %"]
+    col_widths = [30, 30, 40, 40, 40, 30]
+    headers = ["Diameter", "Bars Used", "Required W (kg)",
+               "Used W (kg)", "Waste W (kg)", "Waste %"]
 
-    for i, header in enumerate(headers_main):
-        pdf.cell(col_widths_main[i], 8, header, border=1, align="C")
+    for i, header in enumerate(headers):
+        pdf.cell(col_widths[i], 8, header, border=1, align="C")
     pdf.ln()
 
     total_required = 0
@@ -91,64 +88,58 @@ def generate_pdf(df, purchase_df, price):
     total_waste = 0
 
     for _, row in df.iterrows():
-        pdf.cell(col_widths_main[0], 8, f"{int(row['Diameter'])} mm", border=1, align="C")
-        pdf.cell(col_widths_main[1], 8, f"{int(row['Bars Used'])}", border=1, align="C")
-        pdf.cell(col_widths_main[2], 8, f"{row['Required Weight (kg)']:.2f}", border=1, align="C")
-        pdf.cell(col_widths_main[3], 8, f"{row['Used Weight (kg)']:.2f}", border=1, align="C")
-        pdf.cell(col_widths_main[4], 8, f"{row['Waste Weight (kg)']:.2f}", border=1, align="C")
-        pdf.cell(col_widths_main[5], 8, f"{row['Waste %']:.2f}", border=1, align="C")
+        pdf.cell(col_widths[0], 8, f"{int(row['Diameter'])} mm", border=1, align="C")
+        pdf.cell(col_widths[1], 8, f"{int(row['Bars Used'])}", border=1, align="C")
+        pdf.cell(col_widths[2], 8, f"{row['Required Weight (kg)']:.2f}", border=1, align="C")
+        pdf.cell(col_widths[3], 8, f"{row['Used Weight (kg)']:.2f}", border=1, align="C")
+        pdf.cell(col_widths[4], 8, f"{row['Waste Weight (kg)']:.2f}", border=1, align="C")
+        pdf.cell(col_widths[5], 8, f"{row['Waste %']:.2f}", border=1, align="C")
         pdf.ln()
 
         total_required += row['Required Weight (kg)']
         total_used += row['Used Weight (kg)']
         total_waste += row['Waste Weight (kg)']
 
-    pdf.set_font("Arial", 'B', 9)
-    pdf.cell(col_widths_main[0] + col_widths_main[1], 8, "TOTAL", border=1, align="C")
-    pdf.cell(col_widths_main[2], 8, f"{total_required:.2f}", border=1, align="C")
-    pdf.cell(col_widths_main[3], 8, f"{total_used:.2f}", border=1, align="C")
-    pdf.cell(col_widths_main[4], 8, f"{total_waste:.2f}", border=1, align="C")
-    pdf.cell(col_widths_main[5], 8, "", border=1, align="C")
+    pdf.set_font("Arial", 'B', 10)
+    pdf.cell(col_widths[0]+col_widths[1], 8, "TOTAL", border=1, align="C")
+    pdf.cell(col_widths[2], 8, f"{total_required:.2f}", border=1, align="C")
+    pdf.cell(col_widths[3], 8, f"{total_used:.2f}", border=1, align="C")
+    pdf.cell(col_widths[4], 8, f"{total_waste:.2f}", border=1, align="C")
+    pdf.cell(col_widths[5], 8, "", border=1, align="C")
     pdf.ln(15)
 
-    # =========================
-    # PURCHASE SUMMARY (WITH COST)
-    # =========================
+    # ===== Purchase Summary =====
     pdf.set_font("Arial", 'B', 11)
     pdf.cell(0, 8, "Purchase Summary (12m Bars)", ln=True)
     pdf.set_font("Arial", '', 9)
 
-    col_widths_purchase = [40, 40, 50, 40]
-    headers_purchase = ["Diameter", "Bars (12m)", "Weight (kg)", "Cost ($)"]
+    col_widths2 = [40, 40, 50, 40]
+    headers2 = ["Diameter", "Bars (12m)", "Weight (kg)", "Cost ($)"]
 
-    for i, header in enumerate(headers_purchase):
-        pdf.cell(col_widths_purchase[i], 8, header, border=1, align="C")
+    for i, header in enumerate(headers2):
+        pdf.cell(col_widths2[i], 8, header, border=1, align="C")
     pdf.ln()
 
-    total_weight = 0
     total_cost = 0
+    total_weight = 0
 
     for _, row in purchase_df.iterrows():
-        cost = (row['Weight (kg)'] / 1000) * price
+        cost = (row["Weight (kg)"] / 1000) * price
+        total_cost += cost
+        total_weight += row["Weight (kg)"]
 
-        pdf.cell(col_widths_purchase[0], 8, f"{int(row['Diameter'])} mm", border=1, align="C")
-        pdf.cell(col_widths_purchase[1], 8, f"{int(row['Bars'])}", border=1, align="C")
-        pdf.cell(col_widths_purchase[2], 8, f"{row['Weight (kg)']:.2f}", border=1, align="C")
-        pdf.cell(col_widths_purchase[3], 8, f"{cost:.2f}", border=1, align="C")
+        pdf.cell(col_widths2[0], 8, f"{int(row['Diameter'])} mm", border=1, align="C")
+        pdf.cell(col_widths2[1], 8, f"{int(row['Bars'])}", border=1, align="C")
+        pdf.cell(col_widths2[2], 8, f"{row['Weight (kg)']:.2f}", border=1, align="C")
+        pdf.cell(col_widths2[3], 8, f"{cost:.2f}", border=1, align="C")
         pdf.ln()
 
-        total_weight += row['Weight (kg)']
-        total_cost += cost
-
     pdf.set_font("Arial", 'B', 10)
-    pdf.cell(col_widths_purchase[0] + col_widths_purchase[1], 8, "TOTAL", border=1, align="C")
-    pdf.cell(col_widths_purchase[2], 8, f"{total_weight:.2f}", border=1, align="C")
-    pdf.cell(col_widths_purchase[3], 8, f"{total_cost:.2f}", border=1, align="C")
+    pdf.cell(col_widths2[0]+col_widths2[1], 8, "TOTAL", border=1, align="C")
+    pdf.cell(col_widths2[2], 8, f"{total_weight:.2f}", border=1, align="C")
+    pdf.cell(col_widths2[3], 8, f"{total_cost:.2f}", border=1, align="C")
     pdf.ln(15)
 
-    # =========================
-    # FINAL BIG TOTAL COST
-    # =========================
     pdf.set_font("Arial", 'B', 18)
     pdf.cell(0, 12, f"TOTAL PURCHASE COST: {total_cost:.2f} $", border=1, align="C")
 
@@ -172,15 +163,30 @@ for diameter in DIAMETERS:
 
     st.subheader(f"Diameter {diameter} mm")
 
+    if f"rows_{diameter}" not in st.session_state:
+        st.session_state[f"rows_{diameter}"] = 1
+
+    if st.button(f"Add Row - {diameter} mm"):
+        st.session_state[f"rows_{diameter}"] += 1
+
     lengths = []
-    for i in range(4):
+
+    for i in range(st.session_state[f"rows_{diameter}"]):
         col1, col2 = st.columns(2)
         with col1:
-            length = st.number_input(f"Length (m) [{i+1}] - {diameter} mm",
-                                     min_value=0.0, step=0.5, key=f"l{diameter}{i}")
+            length = st.number_input(
+                f"Length (m) - {diameter} mm - Row {i+1}",
+                min_value=0.0,
+                step=0.5,
+                key=f"l{diameter}_{i}"
+            )
         with col2:
-            qty = st.number_input(f"Quantity [{i+1}] - {diameter} mm",
-                                  min_value=0, step=1, key=f"q{diameter}{i}")
+            qty = st.number_input(
+                f"Quantity - {diameter} mm - Row {i+1}",
+                min_value=0,
+                step=1,
+                key=f"q{diameter}_{i}"
+            )
 
         lengths += [length] * qty
 
