@@ -52,6 +52,7 @@ def optimize_cutting(lengths):
 def generate_pdf(df, waste_df, purchase_df, price):
     pdf = FPDF(orientation='L')
     pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
 
     # Header
     pdf.set_font("Arial", 'B', 16)
@@ -69,6 +70,7 @@ def generate_pdf(df, waste_df, purchase_df, price):
     pdf.set_font("Arial", 'B', 10)
     pdf.cell(0, 8, "Main Report", ln=True)
     pdf.set_font("Arial", '', 8)
+
     col_widths_main = [25, 25, 35, 35, 35, 25, 30]
     headers_main = ["Diameter", "Bars Used", "Required W (kg)", "Used W (kg)",
                     "Waste W (kg)", "Waste %", "Cost ($)"]
@@ -109,8 +111,9 @@ def generate_pdf(df, waste_df, purchase_df, price):
     # Waste Report Table
     # ----------------------
     pdf.set_font("Arial", 'B', 10)
-    pdf.cell(0, 8, "Detailed Waste Report (per group of bars)", ln=True)
+    pdf.cell(0, 8, "Detailed Waste Report", ln=True)
     pdf.set_font("Arial", '', 8)
+
     col_widths_waste = [25, 35, 25, 35]
     headers_waste = ["Diameter", "Waste Length (m)", "Number of Bars", "Waste Weight (kg)"]
 
@@ -136,8 +139,9 @@ def generate_pdf(df, waste_df, purchase_df, price):
     # Purchase Summary Table
     # ----------------------
     pdf.set_font("Arial", 'B', 10)
-    pdf.cell(0, 8, "Purchase Summary (for 12m Bars)", ln=True)
+    pdf.cell(0, 8, "Purchase Summary (12m Bars)", ln=True)
     pdf.set_font("Arial", '', 8)
+
     col_widths_purchase = [25, 35, 35]
     headers_purchase = ["Diameter", "Number of Bars", "Weight (kg)"]
 
