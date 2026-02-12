@@ -168,4 +168,4 @@ def generate_pdf(df, waste_df, full_bars_dict, price=None, currency="$"):
     pdf.cell(0, 8, "Signature: ____________________", ln=True)
     filename = f"Rebar_Report_{datetime.date.today()}.pdf"
     pdf.output(filename)
-    return filename   
+    return filename
