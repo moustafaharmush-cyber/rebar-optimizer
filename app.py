@@ -49,7 +49,7 @@ def optimize_cutting(lengths):
 # =========================
 # PDF Generator
 # =========================
-def generate_pdf(df, waste_df, purchase_df, price, currency):
+def generate_pdf(df, waste_df, purchase_df, price):
     pdf = FPDF(orientation='L')
     pdf.add_page()
 
@@ -71,7 +71,7 @@ def generate_pdf(df, waste_df, purchase_df, price, currency):
     pdf.set_font("Arial", '', 8)
     col_widths_main = [25, 25, 35, 35, 35, 25, 30]
     headers_main = ["Diameter", "Bars Used", "Required W (kg)", "Used W (kg)",
-                    "Waste W (kg)", "Waste %", f"Cost ({currency})"]
+                    "Waste W (kg)", "Waste %", "Cost ($)"]
 
     for i, header in enumerate(headers_main):
         pdf.cell(col_widths_main[i], 8, header, border=1, align="C")
@@ -91,13 +91,11 @@ def generate_pdf(df, waste_df, purchase_df, price, currency):
         pdf.cell(col_widths_main[5], 8, f"{row['Waste %']:.2f}", border=1)
         pdf.cell(col_widths_main[6], 8, f"{row['Cost']:.2f}", border=1)
         pdf.ln()
-        # Totals
         total_required_weight += row['Required Weight (kg)']
         total_used_weight += row['Used Weight (kg)']
         total_waste_weight += row['Waste Weight (kg)']
         total_cost += row['Cost']
 
-    # Total row (only weights and cost)
     pdf.set_font("Arial", 'B', 8)
     pdf.cell(col_widths_main[0]+col_widths_main[1], 8, "TOTAL", border=1)
     pdf.cell(col_widths_main[2], 8, f"{total_required_weight:.2f}", border=1)
@@ -129,7 +127,6 @@ def generate_pdf(df, waste_df, purchase_df, price, currency):
         pdf.ln()
         total_waste_weight2 += row['Waste Weight (kg)']
 
-    # Total row (weights only)
     pdf.set_font("Arial", 'B', 8)
     pdf.cell(col_widths_waste[0]+col_widths_waste[1]+col_widths_waste[2], 8, "TOTAL", border=1)
     pdf.cell(col_widths_waste[3], 8, f"{total_waste_weight2:.2f}", border=1)
@@ -156,7 +153,6 @@ def generate_pdf(df, waste_df, purchase_df, price, currency):
         pdf.ln()
         total_purchase_weight += row['Weight (kg)']
 
-    # Total row (weight only)
     pdf.set_font("Arial", 'B', 8)
     pdf.cell(col_widths_purchase[0]+col_widths_purchase[1], 8, "TOTAL", border=1)
     pdf.cell(col_widths_purchase[2], 8, f"{total_purchase_weight:.2f}", border=1)
@@ -176,17 +172,16 @@ st.set_page_config(layout="wide")
 st.title("Rebar Optimizer Pro")
 st.subheader("Created by Civil Engineer Moustafa Harmouch")
 
-# Reset
 if st.button("Reset"):
     st.session_state.clear()
     st.rerun()
 
 price = st.number_input("Price per ton (optional)", min_value=0.0)
-currency = st.selectbox("Currency", ["$", "€"])
+currency = "$"  # Fixed to Dollar
 
 st.markdown("## Enter Rebar Data")
 data = {}
-purchase_summary_data = {}
+purchase_summary_list = []
 
 for d in DIAMETERS:
     if f"rows_{d}" not in st.session_state:
@@ -235,6 +230,7 @@ if st.button("Run Optimization"):
         waste_percent = ((total_bar_length - total_required) / total_bar_length) * 100
         cost = (used_weight / 1000) * price if price else 0
         results.append([d, used_bars, required_weight, used_weight, waste_weight, waste_percent, cost])
+
         # Waste details
         for bar in solution:
             bar_total_length = sum(bar)
@@ -243,7 +239,8 @@ if st.button("Run Optimization"):
                 key = (d, round(bar_waste, 6))
                 waste_dict[key]["count"] += 1
                 waste_dict[key]["weight"] += bar_waste * wpm
-        # Purchase summary (full bars of 12m)
+
+        # Purchase summary (full bars 12m)
         full_bars = sum(1 for bar in solution if sum(bar)==BAR_LENGTH)
         purchase_summary_list.append([d, full_bars, full_bars*BAR_LENGTH*wpm])
 
@@ -262,7 +259,7 @@ if st.button("Run Optimization"):
     st.markdown("### Purchase Summary")
     st.dataframe(purchase_df)
 
-    pdf_file = generate_pdf(df, waste_df, purchase_df, price, currency)
+    pdf_file = generate_pdf(df, waste_df, purchase_df, price)
     with open(pdf_file, "rb") as f:
         st.download_button(
             label="Download PDF Report",
