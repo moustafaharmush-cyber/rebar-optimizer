@@ -44,7 +44,7 @@ def optimize_cutting(lengths):
             min_waste = waste
             min_bars = len(bars)
             best_solution = bars
-    return best_solution, waste
+    return best_solution
 
 # =========================
 # PDF Generator
