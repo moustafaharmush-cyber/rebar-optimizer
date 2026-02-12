@@ -57,7 +57,6 @@ def generate_pdf(df, waste_df, purchase_df, price):
     pdf.set_font("Arial", 'B', 16)
     pdf.cell(0, 10, "Rebar Optimization Report", ln=True, align="C")
     pdf.ln(5)
-
     pdf.set_font("Arial", '', 10)
     pdf.cell(0, 8, "Created by Civil Engineer Moustafa Harmouch", ln=True)
     pdf.cell(0, 8, f"Date: {datetime.date.today()}", ln=True)
@@ -71,8 +70,7 @@ def generate_pdf(df, waste_df, purchase_df, price):
     pdf.set_font("Arial", '', 8)
 
     col_widths_main = [25, 25, 35, 35, 25, 30]
-    headers_main = ["Diameter", "Bars Used", "Used W (kg)", "Required W (kg)",
-                    "Waste W (kg)", "Waste %"]
+    headers_main = ["Diameter", "Bars Used", "Used W (kg)", "Required W (kg)", "Waste W (kg)", "Waste %"]
 
     for i, header in enumerate(headers_main):
         pdf.cell(col_widths_main[i], 8, header, border=1, align="C")
