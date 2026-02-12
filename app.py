@@ -167,4 +167,4 @@ def generate_pdf(df, waste_df, purchase_df, price):
 
     filename = f"Rebar_Report_{datetime.date.today()}.pdf"
     pdf.output(filename)
-    return filename
+    return filename  
